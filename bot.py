@@ -1,5 +1,6 @@
 import os
 import logging
+import asyncio
 from telegram import Update, InlineQueryResultArticle, InputTextMessageContent
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, InlineQueryHandler
 
@@ -50,13 +51,14 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
             input_message_content=InputTextMessageContent(
                 f"📚 **English Learning Hub**\n\n"
                 f"Searched term: *{query}*\n"
-                f"💡 *Quick Tip:* Always review context when learning new vocabulary to ensure proper usage in conversation."
-            , parse_mode="Markdown")
+                f"💡 *Quick Tip:* Always review context when learning new vocabulary to ensure proper usage in conversation.",
+                parse_mode="Markdown"
+            )
         )
     ]
     await update.inline_query.answer(results, cache_time=1)
 
-def main():
+async def main():
     if not TOKEN:
         raise ValueError("BOT_TOKEN environment variable is missing!")
     
@@ -67,8 +69,17 @@ def main():
     app.add_handler(CommandHandler("tip", tip_command))
     app.add_handler(InlineQueryHandler(inline_query))
     
-    print("Bot is polling successfully...")
-    app.run_polling()
+    print("Bot is starting polling safely...")
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
+    
+    # Keep the application running indefinitely
+    stop_event = asyncio.Event()
+    await stop_event.wait()
 
 if __name__ == '__main__':
-    main()
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        pass
